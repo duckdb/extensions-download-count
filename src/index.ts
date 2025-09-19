@@ -56,25 +56,28 @@ export default {
 	});
 
 	// we can't have more than n outstanding requests on cf
-	var http_request_results = [];
+	var counts = [];
 	while (http_requests.length > 0) {
 		const req_now = http_requests.slice(0, 5);
 		http_requests = http_requests.slice(5);
 		const res_now = await Promise.all(req_now);
-		http_request_results.push(...res_now);
+
+		for (var res of res_now) {
+			const res_json = await res.json();
+			try {
+				counts.push(res_json.data.viewer.zones[0].httpRequestsAdaptiveGroups[0].count);
+			} catch {
+				counts.push(0);
+			}
+		}
 	}
-	if (http_requests.size != http_request_results.size) {
+	if (counts.size != http_requests.size) {
 		throw new RangeError();
 	}
 
 	var extension_counts = {};
 	for (var idx in extensions) {
-		const res_json = await http_request_results[idx].json();
-		var count = 0;
-		try {
-			count = res_json.data.viewer.zones[0].httpRequestsAdaptiveGroups[0].count;
-		} catch {}
-		extension_counts[extensions[idx]] = count;
+		extension_counts[extensions[idx]] = counts[idx];
 	}
 
 	console.log(extension_counts);
