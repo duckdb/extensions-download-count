@@ -6,14 +6,12 @@
 	"observability": {
 		"enabled": true
 	},
-	"bindings" : {
-		"r2_buckets": [
-			{
-				"binding": "extension-test-bucket",
-				"bucket_name": "extensions-test-bucket"
-			}
-		]
-	},
+	"r2_buckets": [
+		{
+			"binding": "R2",
+			"bucket_name": "extensions-test-bucket"
+		}
+	],
 	"triggers": {
 		"crons": [
 			"0 4 * * *"

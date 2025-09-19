@@ -1,8 +1,13 @@
 
+import { WorkerEntrypoint } from "cloudflare:workers";
+declare namespace Cloudflare {
+	interface Env {
+		R2: R2Bucket;
+	}
+}
+interface Env extends Cloudflare.Env {}
 
-
-interface Env {}
-export default {
+export default class extends WorkerEntrypoint<Env> {
   async scheduled(
     controller: ScheduledController,
     env: Env,
@@ -81,10 +86,10 @@ export default {
 	}
 
 	console.log(extension_counts);
-
-	await env.R2.put('downloads-last-week.json', extension_counts, {
+	console.log(this.env.R2)
+	await this.env.R2.put('downloads-last-week.json', JSON.stringify(extension_counts), {
       // httpMetadata: request.headers,
     });
 
-  },
+  }
 };
