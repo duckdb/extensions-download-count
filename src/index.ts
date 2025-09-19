@@ -1,11 +1,7 @@
+import "../worker-configuration.d.ts"
 
 import { WorkerEntrypoint } from "cloudflare:workers";
-declare namespace Cloudflare {
-	interface Env {
-		R2: R2Bucket;
-	}
-}
-interface Env extends Cloudflare.Env {}
+
 
 export default class extends WorkerEntrypoint<Env> {
   async scheduled(
@@ -18,7 +14,7 @@ export default class extends WorkerEntrypoint<Env> {
 	const cloudflare_zone_id = '84f631c38b77d4631b561207f2477332';
 
 	const url = 'https://api.cloudflare.com/client/v4/graphql';
-	const host = 'extensions.duckdb.org'; // TODO
+	const host = 'community-extensions.duckdb.org'; // TODO
 
 	const headers = {
 		'User-Agent':           'extensions.duckdb.org',
@@ -30,7 +26,18 @@ export default class extends WorkerEntrypoint<Env> {
     let date = new Date();
     date.setDate(date.getDate() - 7); // 7 days is all we get from cf.
 
-	const extensions = ['autocomplete', 'avro', 'aws', 'azure', 'delta', 'ducklake', 'encodings', 'excel', 'fts', 'httpfs', 'iceberg', 'icu', 'inet', 'jemalloc', 'mysql_scanner', 'postgres_scanner', 'spatial', 'sqlite_scanner', 'tpcds', 'tpch', 'ui', 'vss', 'motherduck', 'json', 'parquet'];
+    const release_version = await (await fetch('https://duckdb.org/data/latest_stable_version.txt')).text();
+
+	const options = {
+	  limit: 1000,
+	  prefix: "v"+release_version.replace('\n', '')+"/linux_arm64",
+	};
+
+	const list = await this.env.duckdb_community_extensions.list(options);
+
+	const extensions = list.objects.map((key) => key.key.replace('.duckdb_extension.gz', '').split('/').pop());
+
+	console.log(extensions);
 
 	var http_requests = extensions.map((ext) => {
 		const graphql = `
@@ -86,10 +93,8 @@ export default class extends WorkerEntrypoint<Env> {
 	}
 
 	console.log(extension_counts);
-	console.log(this.env.R2)
-	await this.env.R2.put('downloads-last-week.json', JSON.stringify(extension_counts), {
-      // httpMetadata: request.headers,
+	await this.env.duckdb_community_extensions.put('downloads-last-week.json', JSON.stringify(extension_counts), {
+        httpMetadata: {contentType : 'application/json'}
     });
-
   }
 };
