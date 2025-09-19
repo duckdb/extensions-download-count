@@ -23,8 +23,8 @@ export default class extends WorkerEntrypoint<Env> {
 		'X-GitHub-Api-Version': '2022-11-28'
 	};
 
-    let date = new Date();
-    date.setDate(date.getDate() - 7); // 7 days is all we get from cf.
+    let last_week = new Date();
+    last_week.setDate(last_week.getDate() - 7); // 7 days is all we get from cf.
 
     const release_version = await (await fetch('https://duckdb.org/data/latest_stable_version.txt')).text();
 
@@ -54,7 +54,7 @@ export default class extends WorkerEntrypoint<Env> {
 		      "variables": {
 		        "zoneTag": "`+cloudflare_zone_id+`",
 		        "filter": {
-		          "datetime_geq": "`+date.toISOString()+`",
+		          "datetime_geq": "`+last_week.toISOString()+`",
 		          "clientRequestHTTPHost": "`+host+`",
 		          "edgeResponseStatus": 200,
 		          "clientRequestPath_like": "%%/`+ext+`.duckdb_extension.%%"
@@ -91,6 +91,8 @@ export default class extends WorkerEntrypoint<Env> {
 	for (var idx in extensions) {
 		extension_counts[extensions[idx]] = counts[idx];
 	}
+
+	extension_counts['_last_update'] = new Date().toISOString()
 
 	console.log(extension_counts);
 	await this.env.duckdb_community_extensions.put('downloads-last-week.json', JSON.stringify(extension_counts), {
