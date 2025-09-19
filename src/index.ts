@@ -1,3 +1,6 @@
+
+
+
 interface Env {}
 export default {
   async scheduled(
@@ -24,7 +27,7 @@ export default {
 
 	const extensions = ['autocomplete', 'avro', 'aws', 'azure', 'delta', 'ducklake', 'encodings', 'excel', 'fts', 'httpfs', 'iceberg', 'icu', 'inet', 'jemalloc', 'mysql_scanner', 'postgres_scanner', 'spatial', 'sqlite_scanner', 'tpcds', 'tpch', 'ui', 'vss', 'motherduck', 'json', 'parquet'];
 
-	const http_requests = extensions.map((ext) => {
+	var http_requests = extensions.map((ext) => {
 		const graphql = `
 		    { "query":
 		      "query ExtensionsDownloadsLastWeek($zoneTag: string, $filter:filter) {
@@ -52,7 +55,17 @@ export default {
 			'body':    graphql.replace(/(\n|\t)/g, '')});
 	});
 
-	const http_request_results = await Promise.all(http_requests);
+	// we can't have more than n outstanding requests on cf
+	var http_request_results = [];
+	while (http_requests.length > 0) {
+		const req_now = http_requests.slice(0, 5);
+		http_requests = http_requests.slice(5);
+		const res_now = await Promise.all(req_now);
+		http_request_results.push(...res_now);
+	}
+	if (http_requests.size != http_request_results.size) {
+		throw new RangeError();
+	}
 
 	var extension_counts = {};
 	for (var idx in extensions) {
@@ -64,7 +77,9 @@ export default {
 		extension_counts[extensions[idx]] = count;
 	}
 
-	await this.env.R2.put('downloads-last-week.json', extension_counts, {
+	console.log(extension_counts);
+
+	await env.R2.put('downloads-last-week.json', extension_counts, {
       // httpMetadata: request.headers,
     });
 
