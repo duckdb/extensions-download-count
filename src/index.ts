@@ -108,7 +108,7 @@ export default class extends WorkerEntrypoint<Env> {
         httpMetadata: {contentType : 'application/json'}
     });
 
-    const year_week = today.GetFullYear() + '/' + today.getWeekNumber();
+    const year_week = today.getFullYear() + '/' + today.getWeekNumber();
     await this.env.duckdb_community_extensions.put('download-stats-weekly/'+year_week+'.json', JSON.stringify(extension_counts), {
         httpMetadata: {contentType : 'application/json'}
     });
