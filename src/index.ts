@@ -14,7 +14,7 @@ export default class extends WorkerEntrypoint<Env> {
     ctx: ExecutionContext,
   ) {
 
-	const cloudflare_api_key = env.CF_API_KEY;
+	const cloudflare_api_key = this.env.CF_API_KEY;
 	const cloudflare_zone_id = '84f631c38b77d4631b561207f2477332';
 
 	const url = 'https://api.cloudflare.com/client/v4/graphql';
