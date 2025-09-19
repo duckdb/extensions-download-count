@@ -2,6 +2,14 @@ import "../worker-configuration.d.ts"
 
 import { WorkerEntrypoint } from "cloudflare:workers";
 
+// https://stackoverflow.com/a/6117889
+Date.prototype.getWeekNumber = function(){
+  var d = new Date(Date.UTC(this.getFullYear(), this.getMonth(), this.getDate()));
+  var dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  var yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+  return Math.ceil((((d - yearStart) / 86400000) + 1)/7)
+};
 
 export default class extends WorkerEntrypoint<Env> {
   async scheduled(
@@ -92,10 +100,16 @@ export default class extends WorkerEntrypoint<Env> {
 		extension_counts[extensions[idx]] = counts[idx];
 	}
 
-	extension_counts['_last_update'] = new Date().toISOString()
+	const today = new Date();
+	extension_counts['_last_update'] = today.toISOString()
 
 	console.log(extension_counts);
 	await this.env.duckdb_community_extensions.put('downloads-last-week.json', JSON.stringify(extension_counts), {
+        httpMetadata: {contentType : 'application/json'}
+    });
+
+    const year_week = today.GetFullYear() + '/' + today.getWeekNumber();
+    await this.env.duckdb_community_extensions.put('download-stats-weekly/'+year_week+'.json', JSON.stringify(extension_counts), {
         httpMetadata: {contentType : 'application/json'}
     });
   }
