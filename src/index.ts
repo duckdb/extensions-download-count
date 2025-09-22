@@ -22,7 +22,7 @@ export default class extends WorkerEntrypoint<Env> {
 		const cloudflare_zone_id = '84f631c38b77d4631b561207f2477332';
 
 		const url = 'https://api.cloudflare.com/client/v4/graphql';
-	const host = 'community-extensions.duckdb.org'; // TODO
+	const host = this.env.DUCKDB_HOSTNAME;
 
 	const headers = {
 		'User-Agent':           host,
@@ -104,12 +104,12 @@ export default class extends WorkerEntrypoint<Env> {
     extension_counts['_last_update'] = today.toISOString()
 
     console.log(extension_counts);
-    await this.env.duckdb_community_extensions.put('downloads-last-week.json', JSON.stringify(extension_counts), {
+    await this.env[host.replace(/[-.]/g, '_')].put('downloads-last-week.json', JSON.stringify(extension_counts), {
     	httpMetadata: {contentType : 'application/json'}
     });
 
     const year_week = today.getFullYear() + '/' + today.getWeekNumber();
-    await this.env.duckdb_community_extensions.put('download-stats-weekly/'+year_week+'.json', JSON.stringify(extension_counts), {
+    await this.env[host.replace(/[-.]/g, '_')].put('download-stats-weekly/'+year_week+'.json', JSON.stringify(extension_counts), {
     	httpMetadata: {contentType : 'application/json'}
     });
   }
