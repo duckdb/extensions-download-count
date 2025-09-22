@@ -49,8 +49,6 @@ export default class extends WorkerEntrypoint<Env> {
 
     const extensions = list.objects.map((key) => key.key.replace('.duckdb_extension.gz', '').split('/').pop());
 
-    console.log(extensions);
-
     var http_requests = extensions.map((ext) => {
     	const graphql = `
 		    { "query":
