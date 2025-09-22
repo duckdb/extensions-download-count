@@ -23,6 +23,9 @@ export default class extends WorkerEntrypoint<Env> {
 
 		const url = 'https://api.cloudflare.com/client/v4/graphql';
 	const host = this.env.DUCKDB_HOSTNAME;
+	const r2_bucket = host.replace(/[-.]/g, '_');
+
+	console.log(host)
 
 	const headers = {
 		'User-Agent':           host,
@@ -41,7 +44,8 @@ export default class extends WorkerEntrypoint<Env> {
     	prefix: "v"+release_version.replace('\n', '')+"/linux_arm64",
     };
 
-    const list = await this.env.duckdb_community_extensions.list(options);
+
+    const list = await this.env[r2_bucket].list(options);
 
     const extensions = list.objects.map((key) => key.key.replace('.duckdb_extension.gz', '').split('/').pop());
 
@@ -104,12 +108,12 @@ export default class extends WorkerEntrypoint<Env> {
     extension_counts['_last_update'] = today.toISOString()
 
     console.log(extension_counts);
-    await this.env[host.replace(/[-.]/g, '_')].put('downloads-last-week.json', JSON.stringify(extension_counts), {
+    await this.env[r2_bucket].put('downloads-last-week.json', JSON.stringify(extension_counts), {
     	httpMetadata: {contentType : 'application/json'}
     });
 
     const year_week = today.getFullYear() + '/' + today.getWeekNumber();
-    await this.env[host.replace(/[-.]/g, '_')].put('download-stats-weekly/'+year_week+'.json', JSON.stringify(extension_counts), {
+    await this.env[r2_bucket].put('download-stats-weekly/'+year_week+'.json', JSON.stringify(extension_counts), {
     	httpMetadata: {contentType : 'application/json'}
     });
   }
