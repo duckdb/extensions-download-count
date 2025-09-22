@@ -1,6 +1,6 @@
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "extensions-download-count",
+	"name": "community-extensions-download-count",
 	"main": "src/index.ts",
 	"compatibility_date": "2025-09-13",
 	"observability": {
