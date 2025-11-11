@@ -10,10 +10,6 @@
 		{
 			"binding": "community_extensions_duckdb_org",
 			"bucket_name": "duckdb-community-extensions"
-		},
-		{
-			"binding": "extensions_duckdb_org",
-			"bucket_name": "duckdb-core-extensions"
 		}
 	],
 	"triggers": {

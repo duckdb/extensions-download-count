@@ -37,75 +37,54 @@ export default class extends WorkerEntrypoint<Env> {
 	let last_week = new Date();
     last_week.setDate(last_week.getDate() - 7); // 7 days is all we get from cf.
 
-    const release_version = await (await fetch('https://duckdb.org/data/latest_stable_version.txt')).text();
 
-    const options = {
-    	limit: 1000,
-    	prefix: "v"+release_version.replace('\n', '')+"/linux_arm64",
-    };
-
-
-    const list = await this.env[r2_bucket].list(options);
-
-    const extensions = list.objects.map((key) => key.key.replace('.duckdb_extension.gz', '').split('/').pop());
-
-    var http_requests = extensions.map((ext) => {
-    	const graphql = `
-		    { "query":
-		      "query ExtensionsDownloadsLastWeek($zoneTag: string, $filter:filter) {
-		        viewer {
-		          zones(filter: {zoneTag: $zoneTag}) {
-		            httpRequestsAdaptiveGroups(limit: 10000, filter: $filter) {
-		              count
-		            }
-		          }
-		        }
-		      }",
-		      "variables": {
-    		"zoneTag": "`+cloudflare_zone_id+`",
-		        "filter": {
-    		"datetime_geq": "`+last_week.toISOString()+`",
-    		"clientRequestHTTPHost": "`+host+`",
-		          "edgeResponseStatus": 200,
-    		"clientRequestPath_like": "%%/`+ext+`.duckdb_extension.%%"
-		        }
-		      }
-    	}`;
-    	return fetch(url, {
+	const graphql = `
+	    { "query":
+	      "query ExtensionsDownloadsLastWeek($zoneTag: string, $filter:filter) {
+	        viewer {
+	          zones(filter: {zoneTag: $zoneTag}) {
+	            httpRequestsAdaptiveGroups(limit: 10000, filter: $filter) {
+	              count
+		           dimensions {
+          clientRequestPath
+        }
+	            }
+	          }
+	        }
+	      }",
+	      "variables": {
+		"zoneTag": "`+cloudflare_zone_id+`",
+	        "filter": {
+		"datetime_geq": "`+last_week.toISOString()+`",
+		"clientRequestHTTPHost": "`+host+`",
+	          "edgeResponseStatus": 200,
+      "clientRequestPath_like": "%%.duckdb_extension.%%"
+	        }
+	      }
+	}`;
+   	const fetch_res = await (await fetch(url, {
     		'method':  'POST', 
     		'headers': headers, 
-    		'body':    graphql.replace(/(\n|\t)/g, '')});
-    });
-
-	// we can't have more than n outstanding requests on cf
-    var counts = [];
-    while (http_requests.length > 0) {
-    	const req_now = http_requests.slice(0, 5);
-    	http_requests = http_requests.slice(5);
-    	const res_now = await Promise.all(req_now);
-
-    	for (var res of res_now) {
-    		const res_json = await res.json();
-    		try {
-    			counts.push(res_json.data.viewer.zones[0].httpRequestsAdaptiveGroups[0].count);
-    		} catch {
-    			counts.push(0);
-    		}
-    	}
-    }
-    if (counts.size != http_requests.size) {
-    	throw new RangeError();
-    }
-
-    var extension_counts = {};
-    for (var idx in extensions) {
-    	extension_counts[extensions[idx]] = counts[idx];
-    }
-
+    		'body':    graphql.replace(/(\n|\t)/g, '')})).json();
+    
     const today = new Date();
+    var extension_counts = {};
     extension_counts['_last_update'] = today.toISOString()
 
-    console.log(extension_counts);
+
+   	for (const path of fetch_res.data.viewer.zones[0].httpRequestsAdaptiveGroups) {
+   		const matches = path.dimensions.clientRequestPath.match('.*/([^/]+)\.duckdb_extension.*');
+   		if (!matches) {
+   			continue; // ???
+   		}
+   		const extension_name = matches[1];
+   		if (extension_name in extension_counts) {
+   			extension_counts[extension_name] += path.count;
+   		} else {
+   			extension_counts[extension_name] = path.count;
+   		}
+   	}
+
     await this.env[r2_bucket].put('downloads-last-week.json', JSON.stringify(extension_counts), {
     	httpMetadata: {contentType : 'application/json'}
     });
