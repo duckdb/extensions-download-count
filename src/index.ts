@@ -11,22 +11,13 @@ Date.prototype.getWeekNumber = function(){
 	return Math.ceil((((d - yearStart) / 86400000) + 1)/7)
 };
 
-export default class extends WorkerEntrypoint<Env> {
-	async scheduled(
-		controller: ScheduledController,
-		env: Env,
-		ctx: ExecutionContext,
-		) {
 
-		const cloudflare_api_key = this.env.CF_API_KEY;
-		const cloudflare_zone_id = '84f631c38b77d4631b561207f2477332';
+const cloudflare_api_key = this.env.CF_API_KEY;
+const cloudflare_zone_id = '84f631c38b77d4631b561207f2477332';
+const url = 'https://api.cloudflare.com/client/v4/graphql';
 
-		const url = 'https://api.cloudflare.com/client/v4/graphql';
-	const host = this.env.DUCKDB_HOSTNAME;
+async function download_count(host) {
 	const r2_bucket = host.replace(/[-.]/g, '_');
-
-	console.log(host)
-
 	const headers = {
 		'User-Agent':           host,
 		'Authorization':        'Bearer ' +  cloudflare_api_key,
@@ -85,6 +76,14 @@ export default class extends WorkerEntrypoint<Env> {
    		}
    	}
 
+
+	let extension_counts_sorted = Object.fromEntries(
+	    Object.entries(extension_counts).sort(([, a], [, b]) =>  b - a)
+	);
+
+	console.log(extension_counts_sorted);
+
+
     await this.env[r2_bucket].put('downloads-last-week.json', JSON.stringify(extension_counts), {
     	httpMetadata: {contentType : 'application/json'}
     });
@@ -93,5 +92,17 @@ export default class extends WorkerEntrypoint<Env> {
     await this.env[r2_bucket].put('download-stats-weekly/'+year_week+'.json', JSON.stringify(extension_counts), {
     	httpMetadata: {contentType : 'application/json'}
     });
+}
+
+export default class extends WorkerEntrypoint<Env> {
+	async scheduled(
+		controller: ScheduledController,
+		env: Env,
+		ctx: ExecutionContext,
+		) {
+
+
+	await download_count('extensions.duckdb.org');
+  	await download_count('community-extensions.duckdb.org');
   }
 };
