@@ -106,7 +106,7 @@ export default class extends WorkerEntrypoint<Env> {
 		) {
 
 
-	await download_count('extensions.duckdb.org');
-  	await download_count('community-extensions.duckdb.org');
+	await this.download_count('extensions.duckdb.org');
+  	await this.download_count('community-extensions.duckdb.org');
   }
 };
