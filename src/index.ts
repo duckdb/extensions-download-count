@@ -12,11 +12,14 @@ Date.prototype.getWeekNumber = function(){
 };
 
 
-const cloudflare_api_key = this.env.CF_API_KEY;
-const cloudflare_zone_id = '84f631c38b77d4631b561207f2477332';
-const url = 'https://api.cloudflare.com/client/v4/graphql';
 
-async function download_count(host) {
+
+async function download_count(env, host) {
+
+	const cloudflare_api_key = env.CF_API_KEY;
+	const cloudflare_zone_id = '84f631c38b77d4631b561207f2477332';
+	const url = 'https://api.cloudflare.com/client/v4/graphql';
+
 	const r2_bucket = host.replace(/[-.]/g, '_');
 	const headers = {
 		'User-Agent':           host,
@@ -84,12 +87,12 @@ async function download_count(host) {
 	console.log(extension_counts_sorted);
 
 
-    await this.env[r2_bucket].put('downloads-last-week.json', JSON.stringify(extension_counts), {
+    await env[r2_bucket].put('downloads-last-week.json', JSON.stringify(extension_counts), {
     	httpMetadata: {contentType : 'application/json'}
     });
 
     const year_week = today.getFullYear() + '/' + today.getWeekNumber();
-    await this.env[r2_bucket].put('download-stats-weekly/'+year_week+'.json', JSON.stringify(extension_counts), {
+    await env[r2_bucket].put('download-stats-weekly/'+year_week+'.json', JSON.stringify(extension_counts), {
     	httpMetadata: {contentType : 'application/json'}
     });
 }
