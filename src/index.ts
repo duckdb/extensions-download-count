@@ -88,12 +88,12 @@ export default class extends WorkerEntrypoint<Env> {
 		console.log(extension_counts_sorted);
 
 
-	    await this.env[r2_bucket].put('downloads-last-week.json', JSON.stringify(extension_counts), {
+	    await this.env[r2_bucket].put('downloads-last-week.json', JSON.stringify(extension_counts_sorted), {
 	    	httpMetadata: {contentType : 'application/json'}
 	    });
 
 	    const year_week = today.getFullYear() + '/' + today.getWeekNumber();
-	    await this.env[r2_bucket].put('download-stats-weekly/'+year_week+'.json', JSON.stringify(extension_counts), {
+	    await this.env[r2_bucket].put('download-stats-weekly/'+year_week+'.json', JSON.stringify(extension_counts_sorted), {
 	    	httpMetadata: {contentType : 'application/json'}
 	    });
 	}
